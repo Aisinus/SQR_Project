@@ -4,6 +4,7 @@ from fastapi.security.api_key import APIKeyHeader
 import models
 from database import engine
 import jwt
+from books import Books
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -60,3 +61,9 @@ def get_or_create_user(db: Session = Depends(get_db), username: str = Depends(va
     
     # Return user info
     return {"username": db_user.name, "created_at": db_user.created_at}
+
+
+@app.get("/search_books")
+async def search_books(name:str, page:int, size:int):
+    result = await Books.search_books(name=name, author=None, tags=None, publish_year=None, page=page, size=size)
+    return result
