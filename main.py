@@ -84,9 +84,9 @@ async def get_book_by_id(book_id:str):
     book = await Books.get_book_by_id(id=book_id)
     return book
 
-@app.post("/user/{user_id}/books")
-async def choose_favorites(user_id:int, books:List[str], db:Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+@app.post("/user/{username}/books")
+async def choose_favorites(username:str, books:List[str], db:Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.name == username).first()
 
     if len(books) == 0 or not db_user :
         raise HTTPException(status_code=400, detail="Invalid input data") 
@@ -94,14 +94,14 @@ async def choose_favorites(user_id:int, books:List[str], db:Session = Depends(ge
     unique_books = list(set(books))
 
     for book in unique_books:
-        get_book_by_id(book)
+        await Books.get_book_by_id(book)
     
     try:
         for book_id in unique_books:
             # Check if the book already exists in favorites
-            existing_book = db.query(models.FavoriteBook).filter(models.FavoriteBook.user_id == user_id, models.FavoriteBook.book_id == book_id).first()
+            existing_book = db.query(models.FavoriteBook).filter(models.FavoriteBook.user_id == db_user.id, models.FavoriteBook.book_id == book_id).first()
             if not existing_book:
-                new_favorite = models.FavoriteBook(user_id=user_id, book_id=book_id)
+                new_favorite = models.FavoriteBook(user_id=db_user.id, book_id=book_id)
                 db.add(new_favorite)
 
         db.commit()
@@ -111,12 +111,12 @@ async def choose_favorites(user_id:int, books:List[str], db:Session = Depends(ge
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
     
-@app.delete("/user/{user_id}/books/{book_id}")
-async def delete_favorites(user_id:int, book_id:str, db:Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+@app.delete("/user/{username}/books/{book_id}")
+async def delete_favorites(username:str, book_id:str, db:Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.name == username).first()
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid input data")      
-    favorite_book = db.query(models.FavoriteBook).filter(models.FavoriteBook.user_id == user_id, models.FavoriteBook.book_id == book_id).first()
+    favorite_book = db.query(models.FavoriteBook).filter(models.FavoriteBook.user_id == db_user.id, models.FavoriteBook.book_id == book_id).first()
     if not favorite_book:
         raise HTTPException(status_code=404, detail="Favorite book not found")
     
@@ -131,9 +131,19 @@ async def delete_favorites(user_id:int, book_id:str, db:Session = Depends(get_db
 
 
 
-@app.get("/user/{user_id}/books")
-async def get_favorites(user_id:int, brief:bool, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+@app.get("/user/{username}/books")
+async def get_favorites(username:str, brief:bool, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.name == username).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="No such user")
-    return db_user.favorite_books
+    
+    books = [favorite_book.book_id for favorite_book in db_user.favorite_books]
+    if brief:
+        return books
+    
+    return [await Books.get_book_by_id(book) for book in books]
+
+@app.get("/user/{username}/books/recommendation")
+async def get_recommendation(username:str,db: Session = Depends(get_db)):
+    return
+
