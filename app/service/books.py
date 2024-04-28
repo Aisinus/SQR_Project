@@ -77,7 +77,7 @@ class Books:
 
 
     @staticmethod
-    async def search_books(name: str, author: str, tags: [str], publish_year: int, page:int, size:int):
+    async def search_books(name: str, author: str, tags: [str], page:int, size:int):
         url = f"{BASE_URL}/search.json"
         params = {}
         if name is not None:
@@ -86,12 +86,11 @@ class Books:
             params['author'] = author
         if tags is not None:
             params['subject'] = ",".join(tags)
-        if publish_year is not None:
-            params['publishYear'] = publish_year
         params['page'] = page
         params['limit'] = size
         params['fields'] = "key,title,author_name,first_publish_year,editions,cover_i, subject"
         async with httpx.AsyncClient() as client:
+            print(params)
             response = await client.get(url, params = params)
             response.raise_for_status()
             data = response.json()

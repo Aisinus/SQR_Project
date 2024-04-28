@@ -8,7 +8,7 @@ from service.books import Books
 import httpx
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from typing import List
+from typing import List, Optional
 import uvicorn
 
 
@@ -83,8 +83,8 @@ def get_or_create_user(db: Session = Depends(get_db), username: str = Depends(va
 
 
 @app.get("/search_books")
-async def search_books(name:str, page:int, size:int):
-    result = await Books.search_books(name=name, author=None, tags=None, publish_year=None, page=page, size=size)
+async def search_books(name:Optional[str] = None, author:Optional[str] = None, tags:List[str] = None, page:int = 1, size:int = 1):
+    result = await Books.search_books(name=name, author=author, tags=tags, page=page, size=size)
     return result
 
 @app.get("/book/{book_id}")
